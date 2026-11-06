@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 시험 스케줄러</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* Custom Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Navbar -->
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl backdrop-blur-sm">
+                    📚
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">스마트 시험 스케줄러</h1>
+                    <p class="text-xs text-indigo-200">AI 맞춤형 학습 계획 생성기</p>
+                </div>
+            </div>
+            <button onclick="resetApp()" class="text-xs bg-indigo-700 hover:bg-indigo-800 text-indigo-100 px-3 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-1">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">초기화</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-6 w-full flex-grow">
+
+        <!-- Custom Notification Modal (Alert replacement) -->
+        <div id="customAlert" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 text-center transform transition-all scale-100">
+                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-xl mx-auto mb-4">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-2">입력 오류</h3>
+                <p id="alertMessage" class="text-sm text-slate-600 mb-6">모든 항목을 올바르게 채워주세요.</p>
+                <button onclick="closeAlert()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition-colors text-sm shadow-md shadow-indigo-200">
+                    확인
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 1: 입력 및 난이도 설정 섹션 -->
+        <section id="step1Section" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 mb-6">
+            <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                    <span class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm">1</span>
+                    <h2 class="text-lg font-bold text-slate-800">시험 정보 & 과목 설정</h2>
+                </div>
+                <span class="text-xs font-medium text-slate-400">단계 1 / 2</span>
+            </div>
+
+            <!-- 남은 시험 일수 입력 -->
+            <div class="mb-6 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/60">
+                <label for="remainingDays" class="block text-sm font-semibold text-slate-700 mb-2">
+                    <i class="fa-regular fa-calendar-check text-indigo-500 mr-1.5"></i>시험까지 남은 기간 (일수)
+                </label>
+                <div class="relative max-w-xs">
+                    <input type="number" id="remainingDays" min="1" placeholder="예: 7" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-800 font-medium placeholder-slate-400 text-sm shadow-sm transition-all" />
+                    <span class="absolute right-4 top-2.5 text-sm font-medium text-slate-400">일 남음</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">※ 1일 이상을 입력해 주세요.</p>
+            </div>
+
+            <!-- 과목 및 난이도 목록 추가 섹션 -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <label class="block text-sm font-semibold text-slate-700">
+                        <i class="fa-solid fa-book text-indigo-500 mr-1.5"></i>시험 과목 목록
+                    </label>
+                    <button type="button" onclick="addSubjectRow()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-semibold px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors flex items-center space-x-1">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>과목 추가</span>
+                    </button>
+                </div>
+
+                <!-- Container for subjects -->
+                <div id="subjectList" class="space-y-3">
+                    <!-- Dynamic Subject Rows Will Be Rendered Here -->
+                </div>
+            </div>
+
+            <!-- 계산하기 버튼 -->
+            <div class="pt-4 border-t border-slate-100 flex justify-end">
+                <button type="button" onclick="generateSchedule()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg shadow-indigo-200 transition-all transform active:scale-95 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>스마트 스케줄 계산하기</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- STEP 2: 스케줄 결과 출력 섹션 (기본은 숨김) -->
+        <section id="step2Section" class="hidden space-y-6">
+            <!-- 요약 카드 -->
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
+                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                    <div>
+                        <span class="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold mb-2">생성 완료 🎉</span>
+                        <h2 class="text-xl font-bold">맞춤형 공부 스케줄표</h2>
+                        <p id="summaryText" class="text-xs text-indigo-100 mt-1">총 7일 동안 3과목 완성을 목표로 합니다.</p>
+                    </div>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <button onclick="scrollToTop()" class="flex-1 sm:flex-none text-xs bg-white text-indigo-700 font-bold px-4 py-2.5 rounded-xl shadow-md hover:bg-indigo-50 transition-colors text-center">
+                            <i class="fa-solid fa-pen-to-square mr-1"></i> 과목/기간 수정
+                        </button>
+                    </div>
+                </div>
+                <!-- 진행률 바 -->
+                <div class="mt-6 pt-4 border-t border-white/15">
+                    <div class="flex justify-between items-center text-xs mb-1.5">
+                        <span class="font-medium text-indigo-100">전체 학습 달성률</span>
+                        <span id="progressPercent" class="font-bold">0%</span>
+                    </div>
+                    <div class="w-full bg-black/20 rounded-full h-2.5 overflow-hidden">
+                        <div id="progressBar" class="bg-emerald-400 h-2.5 rounded-full transition-all duration-300 w-0"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 과목별 공부 비중 요약 태그 -->
+            <div class="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm flex flex-wrap gap-2 items-center text-xs">
+                <span class="font-bold text-slate-500 mr-2"><i class="fa-solid fa-chart-pie mr-1"></i>과목 가중치:</span>
+                <div id="subjectRatioBadge" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <!-- 일자별 체크리스트 목록 -->
+            <div class="space-y-4" id="scheduleDaysContainer">
+                <!-- Dynamic Schedule Cards Will Be Appended Here -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+        <p>© 2026 스마트 시험 스케줄러. 수행평가 프로젝트</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // 초기 기본 과목 데이터
+        const defaultSubjects = [
+            { name: "국어", difficulty: "medium" },
+            { name: "수학", difficulty: "high" },
+            { name: "영어", difficulty: "low" }
+        ];
+
+        // 난이도 가중치 및 라벨 정의
+        const difficultyConfig = {
+            high: { label: "상 (어려움)", weight: 3, badgeClass: "bg-rose-100 text-rose-700 border-rose-200" },
+            medium: { label: "중 (보통)", weight: 2, badgeClass: "bg-amber-100 text-amber-700 border-amber-200" },
+            low: { label: "하 (쉬움)", weight: 1, badgeClass: "bg-emerald-100 text-emerald-700 border-emerald-200" }
+        };
+
+        // 앱 초기화 실행
+        window.onload = function() {
+            initSubjectRows();
+        };
+
+        // 과목 목록 초기화 render
+        function initSubjectRows() {
+            const container = document.getElementById('subjectList');
+            container.innerHTML = '';
+            defaultSubjects.forEach(sub => addSubjectRow(sub.name, sub.difficulty));
+        }
+
+        // 과목 행 추가 함수
+        function addSubjectRow(name = '', difficulty = 'medium') {
+            const container = document.getElementById('subjectList');
+            const rowId = 'sub_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+
+            const row = document.createElement('div');
+            row.className = 'subject-row flex items-center space-x-2 bg-slate-50 p-3 rounded-xl border border-slate-200/70 hover:border-slate-300 transition-all';
+            row.id = rowId;
+
+            row.innerHTML = `
+                <div class="flex-1 min-w-0">
+                    <input type="text" value="${name}" placeholder="과목명 (예: 한국사)" class="subject-name w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-800 placeholder-slate-400 bg-white" />
+                </div>
+                <div class="w-32 sm:w-40">
+                    <select class="subject-difficulty w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700 bg-white">
+                        <option value="high" ${difficulty === 'high' ? 'selected' : ''}>상 (난이도 높음)</option>
+                        <option value="medium" ${difficulty === 'medium' ? 'selected' : ''}>중 (난이도 보통)</option>
+                        <option value="low" ${difficulty === 'low' ? 'selected' : ''}>하 (난이도 낮음)</option>
+                    </select>
+                </div>
+                <button type="button" onclick="removeSubjectRow('${rowId}')" class="text-slate-400 hover:text-rose-500 p-2 rounded-lg transition-colors flex-shrink-0" title="삭제">
+                    <i class="fa-solid fa-trash-can text-sm"></i>
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        // 과목 행 삭제
+        function removeSubjectRow(rowId) {
+            const container = document.getElementById('subjectList');
+            if (container.children.length <= 1) {
+                showAlert('최소 한 개 이상의 과목이 필요합니다.');
+                return;
+            }
+            const row = document.getElementById(rowId);
+            if (row) row.remove();
+        }
+
+        // 알림 모달 출력 함수
+        function showAlert(msg) {
+            document.getElementById('alertMessage').innerText = msg;
+            document.getElementById('customAlert').classList.remove('hidden');
+        }
+
+        // 알림 모달 닫기
+        function closeAlert() {
+            document.getElementById('customAlert').classList.add('hidden');
+        }
+
+        // 핵심 기능 1 & 2: 검증 및 공부량 자동 계산
+        function generateSchedule() {
+            const daysInput = document.getElementById('remainingDays').value.trim();
+            const days = parseInt(daysInput, 10);
+
+            // 1. 예외 처리: 남은 일수 검증
+            if (!daysInput || isNaN(days)) {
+                showAlert('남은 시험 일수를 숫자로 입력해 주세요.');
+                return;
+            }
+            if (days <= 0) {
+                showAlert('남은 시험 일수는 1일 이상이어야 합니다.');
+                return;
+            }
+
+            // 2. 예외 처리: 과목명 및 난이도 채움 검증
+            const rows = document.querySelectorAll('.subject-row');
+            const subjects = [];
+            let isValid = true;
+
+            rows.forEach(row => {
+                const nameInput = row.querySelector('.subject-name');
+                const diffSelect = row.querySelector('.subject-difficulty');
+                const name = nameInput.value.trim();
+                const difficulty = diffSelect.value;
+
+                if (!name) {
+                    isValid = false;
+                } else {
+                    subjects.push({
+                        name: name,
+                        difficulty: difficulty,
+                        weight: difficultyConfig[difficulty].weight
+                    });
+                }
+            });
+
+            if (!isValid) {
+                showAlert('모든 과목명을 빈칸 없이 채워주세요!');
+                return;
+            }
+
+            if (subjects.length === 0) {
+                showAlert('최소 1개 이상의 과목을 입력해야 합니다.');
+                return;
+            }
+
+            // 3. 공부량 자동 계산 알고리즘
+            // 총 가중치 계산
+            const totalWeight = subjects.reduce((acc, cur) => acc + cur.weight, 0);
+
+            // 각 과목별 총 배분 단위(예: 총 공부 단원/시간 비율)
+            // 하루 총 10개의 '학습 단위'가 제공된다고 가정했을 때, 총 할당량
+            const TOTAL_DAILY_UNITS = 6; // 하루 6타임/6단원 분량
+            const totalUnitsPossible = days * TOTAL_DAILY_UNITS;
+
+            // 과목별 할당 분량 계산
+            subjects.forEach(sub => {
+                const subRatio = sub.weight / totalWeight;
+                const totalUnitsForSub = Math.round(totalUnitsPossible * subRatio);
+                // 하루 평균 분량
+                sub.dailyUnits = (totalUnitsForSub / days).toFixed(1);
+                sub.totalUnits = totalUnitsForSub;
+            });
+
+            // 일자별 스케줄링 생성 (순환 배분 + 복습일 할당)
+            const schedulePlan = [];
+
+            for (let d = 1; d <= days; d++) {
+                const isFinalDay = (d === days);
+                const dayTasks = [];
+
+                if (isFinalDay) {
+                    // 시험 직전 날: 전체 과목 핵심 총복습
+                    subjects.forEach(sub => {
+                        dayTasks.push({
+                            subject: sub.name,
+                            task: `[총복습] ${sub.name} 전체 오답노트 및 핵심 요약본 1회독`,
+                            completed: false
+                        });
+                    });
+                } else {
+                    // 일차별 과목 배분
+                    // 가중치에 따른 일자별 집중 과목 선택
+                    subjects.forEach(sub => {
+                        let amountText = "";
+                        if (sub.difficulty === 'high') {
+                            amountText = `핵심 개념 공부 + 문제 풀이 ${Math.ceil(sub.dailyUnits * 15)}개`;
+                        } else if (sub.difficulty === 'medium') {
+                            amountText = `교과서 단원 읽기 + 요약정리 (${Math.ceil(sub.dailyUnits * 10)}p)`;
+                        } else {
+                            amountText = `기초 용어 암기 및 확인 문제 풀이`;
+                        }
+
+                        dayTasks.push({
+                            subject: sub.name,
+                            task: `[${sub.name}] ${amountText}`,
+                            completed: false
+                        });
+                    });
+                }
+
+                schedulePlan.push({
+                    day: d,
+                    isFinalDay: isFinalDay,
+                    tasks: dayTasks
+                });
+            }
+
+            // UI 출력 함수 호출
+            renderScheduleResults(days, subjects, schedulePlan);
+        }
+
+        // 핵심 기능 3: 일정표 결과 출력 및 체크리스트 UI
+        function renderScheduleResults(days, subjects, schedulePlan) {
+            const step2 = document.getElementById('step2Section');
+            const container = document.getElementById('scheduleDaysContainer');
+            const summaryText = document.getElementById('summaryText');
+            const badgeContainer = document.getElementById('subjectRatioBadge');
+
+            summaryText.innerText = `총 ${days}일 동안 ${subjects.length}개 과목 학습 완성을 위한 맞춤형 계획입니다.`;
+
+            // 과목 가중치 배지 출력
+            badgeContainer.innerHTML = '';
+            subjects.forEach(sub => {
+                const config = difficultyConfig[sub.difficulty];
+                const span = document.createElement('span');
+                span.className = `px-2.5 py-1 rounded-md text-xs font-semibold border ${config.badgeClass}`;
+                span.innerText = `${sub.name} (${config.label.split(' ')[0]})`;
+                badgeContainer.appendChild(span);
+            });
+
+            // 일차별 카체크리스트 생성
+            container.innerHTML = '';
+
+            schedulePlan.forEach((dayPlan, dayIdx) => {
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-2xl p-5 border shadow-sm transition-all ${dayPlan.isFinalDay ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200/80'}`;
+
+                let tasksHTML = '';
+                dayPlan.tasks.forEach((task, taskIdx) => {
+                    const taskId = `check_${dayIdx}_${taskIdx}`;
+                    tasksHTML += `
+                        <div class="flex items-start space-x-3 p-2.5 hover:bg-slate-50 rounded-xl transition-colors">
+                            <input type="checkbox" id="${taskId}" onchange="updateProgress()" class="task-checkbox mt-1 w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer transition" />
+                            <label for="${taskId}" class="task-label text-sm text-slate-700 leading-snug cursor-pointer select-none">
+                                ${task.task}
+                            </label>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-base ${dayPlan.isFinalDay ? 'text-amber-600' : 'text-indigo-600'}">
+                                ${dayPlan.day}일 차
+                            </span>
+                            ${dayPlan.isFinalDay ? '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md font-bold">D-1 파이널</span>' : ''}
+                        </div>
+                        <span class="text-xs text-slate-400 font-medium">${dayPlan.tasks.length}개 할 일</span>
+                    </div>
+                    <div class="space-y-1">
+                        ${tasksHTML}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            // 스케줄 섹션 표시 및 이동
+            step2.classList.remove('hidden');
+            step2.scrollIntoView({ behavior: 'smooth' });
+
+            // 진도율 초기화
+            updateProgress();
+        }
+
+        // 체크박스 클릭 시 진행률 계산
+        function updateProgress() {
+            const checkboxes = document.querySelectorAll('.task-checkbox');
+            if (checkboxes.length === 0) return;
+
+            const checked = document.querySelectorAll('.task-checkbox:checked');
+            const percent = Math.round((checked.length / checkboxes.length) * 100);
+
+            // 체크된 라벨에 취소선 효과
+            checkboxes.forEach(cb => {
+                const label = cb.nextElementSibling;
+                if (cb.checked) {
+                    label.classList.add('line-through', 'text-slate-400');
+                } else {
+                    label.classList.remove('line-through', 'text-slate-400');
+                }
+            });
+
+            // 프로그레스 바 및 텍스트 업데이트
+            document.getElementById('progressPercent').innerText = `${percent}%`;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+        }
+
+        // 화면 상단 이동
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 앱 초기화 (리셋)
+        function resetApp() {
+            document.getElementById('remainingDays').value = '';
+            initSubjectRows();
+            document.getElementById('step2Section').classList.add('hidden');
+            scrollToTop();
+        }
+    </script>
+</body>
+</html>
